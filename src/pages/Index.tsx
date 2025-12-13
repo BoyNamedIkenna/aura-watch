@@ -5,6 +5,9 @@ import { SensorCard, Reading } from '@/components/SensorCard';
 import { PollutantChart } from '@/components/PollutantChart';
 import { HealthAdvisory } from '@/components/HealthAdvisory';
 import { Footer } from '@/components/Footer';
+import { ThingSpeakConfig } from '@/components/ThingSpeakConfig';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { useThingSpeak } from '@/hooks/useThingSpeak';
 import { 
   getIAQStatus, 
   getCOStatus, 
@@ -12,33 +15,61 @@ import {
   generateMockData 
 } from '@/lib/aqiUtils';
 
+const STORAGE_KEY = 'thingspeak_config';
+
+const getStoredConfig = () => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return { channelId: '', apiKey: '' };
+    }
+  }
+  return { channelId: '', apiKey: '' };
+};
+
 const Index = () => {
-  const [sensorData, setSensorData] = useState({
+  const [config, setConfig] = useState(getStoredConfig);
+  const [isConfigured, setIsConfigured] = useState(
+    () => !!config.channelId && !!config.apiKey
+  );
+
+  const {
+    sensorData: liveSensorData,
+    historicalData: liveHistoricalData,
+    isLoading,
+    error,
+    lastUpdated,
+    refetch,
+  } = useThingSpeak({
+    channelId: config.channelId,
+    apiKey: config.apiKey,
+    refreshInterval: 15000, // 15 seconds
+  });
+
+  // Fallback to mock data when not configured
+  const [mockHistoricalData] = useState(generateMockData);
+  
+  const sensorData = isConfigured && !error ? liveSensorData : {
     co: 3.2,
     pm25: 18.5,
     pm10: 32.4,
     iaq: 42,
     temperature: 24.5,
     humidity: 58,
-  });
+  };
 
-  const [historicalData, setHistoricalData] = useState(generateMockData());
+  const historicalData = isConfigured && liveHistoricalData.length > 0 
+    ? liveHistoricalData 
+    : mockHistoricalData;
 
-  // Simulate real-time updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSensorData(prev => ({
-        co: Math.max(0.5, prev.co + (Math.random() - 0.5) * 0.5),
-        pm25: Math.max(1, prev.pm25 + (Math.random() - 0.5) * 3),
-        pm10: Math.max(5, prev.pm10 + (Math.random() - 0.5) * 5),
-        iaq: Math.max(10, Math.min(200, prev.iaq + (Math.random() - 0.5) * 5)),
-        temperature: prev.temperature + (Math.random() - 0.5) * 0.2,
-        humidity: Math.max(30, Math.min(80, prev.humidity + (Math.random() - 0.5) * 2)),
-      }));
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
+  const handleConfigSave = (channelId: string, apiKey: string) => {
+    const newConfig = { channelId, apiKey };
+    setConfig(newConfig);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
+    setIsConfigured(!!channelId && !!apiKey);
+  };
 
   const iaqStatus = getIAQStatus(sensorData.iaq);
   const coStatus = getCOStatus(sensorData.co);
@@ -52,8 +83,38 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Config Bar */}
+      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="container py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-foreground">ThingSpeak</span>
+            {isConfigured && (
+              <span className="text-xs text-muted-foreground">
+                Channel: {config.channelId}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {isConfigured && (
+              <ConnectionStatus
+                isConnected={!error && !isLoading}
+                isLoading={isLoading}
+                lastUpdated={lastUpdated}
+                error={error}
+                onRefresh={refetch}
+              />
+            )}
+            <ThingSpeakConfig
+              channelId={config.channelId}
+              apiKey={config.apiKey}
+              onSave={handleConfigSave}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
-      <HeroSection iaq={sensorData.iaq} location="New Delhi, India" />
+      <HeroSection iaq={sensorData.iaq} location="Air Quality Monitor" />
 
       {/* Sensor Cards Section */}
       <section className="py-12">
