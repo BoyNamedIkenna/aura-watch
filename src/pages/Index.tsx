@@ -29,7 +29,13 @@ const getStoredSettings = (): ThingSpeakSettings => {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Ensure fieldMappings exists (handle old localStorage format)
+      return {
+        channelId: parsed.channelId || '',
+        apiKey: parsed.apiKey || '',
+        fieldMappings: Array.isArray(parsed.fieldMappings) ? parsed.fieldMappings : DEFAULT_MAPPINGS,
+      };
     } catch {
       return { channelId: '', apiKey: '', fieldMappings: DEFAULT_MAPPINGS };
     }
