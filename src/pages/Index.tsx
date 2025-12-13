@@ -7,6 +7,7 @@ import { HealthAdvisory } from '@/components/HealthAdvisory';
 import { Footer } from '@/components/Footer';
 import { ThingSpeakConfig, type ThingSpeakSettings, type FieldMapping } from '@/components/ThingSpeakConfig';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { TimeRangeSelector, type TimeRange, getResultsForTimeRange } from '@/components/TimeRangeSelector';
 import { useThingSpeak, type SensorReading } from '@/hooks/useThingSpeak';
 import { 
   getIAQStatus, 
@@ -82,6 +83,7 @@ const getIconForType = (type: string) => {
 
 const Index = () => {
   const [settings, setSettings] = useState<ThingSpeakSettings>(getStoredSettings);
+  const [timeRange, setTimeRange] = useState<TimeRange>('24h');
   
   const isConfigured = !!settings.channelId && !!settings.apiKey && settings.fieldMappings.length > 0;
 
@@ -98,6 +100,7 @@ const Index = () => {
     apiKey: settings.apiKey,
     fieldMappings: settings.fieldMappings,
     refreshInterval: 15000,
+    results: getResultsForTimeRange(timeRange),
   });
 
   const handleSettingsSave = (newSettings: ThingSpeakSettings) => {
@@ -259,9 +262,12 @@ const Index = () => {
       {isConfigured && readings.length > 0 && historicalData.length > 0 && (
         <section className="py-12 bg-secondary/20">
           <div className="container">
-            <h2 className="text-2xl font-bold text-foreground mb-8 animate-fade-in">
-              Sensor Trends
-            </h2>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold text-foreground animate-fade-in">
+                Sensor Trends
+              </h2>
+              <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+            </div>
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {readings.map((reading, index) => (
