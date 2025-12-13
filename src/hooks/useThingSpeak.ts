@@ -6,6 +6,7 @@ interface ThingSpeakConfig {
   apiKey: string;
   fieldMappings: FieldMapping[];
   refreshInterval?: number;
+  results?: number;
 }
 
 export interface SensorReading {
@@ -52,7 +53,7 @@ const formatTime = (isoString: string): string => {
 };
 
 export const useThingSpeak = (config: ThingSpeakConfig) => {
-  const { channelId, apiKey, fieldMappings, refreshInterval = 15000 } = config;
+  const { channelId, apiKey, fieldMappings, refreshInterval = 15000, results = 144 } = config;
   
   const [readings, setReadings] = useState<SensorReading[]>([]);
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
@@ -96,7 +97,7 @@ export const useThingSpeak = (config: ThingSpeakConfig) => {
 
     try {
       const response = await fetch(
-        `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${apiKey}&results=24`
+        `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${apiKey}&results=${results}`
       );
       
       if (!response.ok) {
@@ -117,7 +118,7 @@ export const useThingSpeak = (config: ThingSpeakConfig) => {
     } catch (err) {
       console.error('Error fetching historical ThingSpeak data:', err);
     }
-  }, [channelId, apiKey, fieldMappings]);
+  }, [channelId, apiKey, fieldMappings, results]);
 
   const fetchAllData = useCallback(async () => {
     setIsLoading(true);
