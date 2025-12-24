@@ -1,24 +1,21 @@
 import { useState } from 'react';
-import { Flame, Wind, Thermometer, Droplets, Activity, Gauge } from 'lucide-react';
+import { Flame, Wind, Thermometer, Droplets, Activity } from 'lucide-react';
 import { HeroSection } from '@/components/HeroSection';
 import { SensorCard, Reading } from '@/components/SensorCard';
 import { PollutantChart } from '@/components/PollutantChart';
 import { HealthAdvisory } from '@/components/HealthAdvisory';
 import { Footer } from '@/components/Footer';
-import { ThingSpeakConfig, type ThingSpeakSettings, type FieldMapping } from '@/components/ThingSpeakConfig';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { TimeRangeSelector, type TimeRange, getResultsForTimeRange } from '@/components/TimeRangeSelector';
-import { useThingSpeak, type SensorReading } from '@/hooks/useThingSpeak';
-import { 
-  getIAQStatus, 
-  getCOStatus, 
-  getPMStatus,
-  type AQIStatus,
-} from '@/lib/aqiUtils';
+import { useThingSpeak } from '@/hooks/useThingSpeak';
+import { getIAQStatus, getCOStatus, getPMStatus, type AQIStatus, getHealthAdvisory } from '@/lib/aqiUtils';
 
-const STORAGE_KEY = 'thingspeak_config';
+// --- HARDCODED CONFIGURATION ---
+// No local storage needed. We just define exactly what your sensor sends.
+const CHANNEL_ID = import.meta.env.VITE_PUBLIC_THINGSPEAK_CHANNEL_ID; 
+const READ_KEY = import.meta.env.VITE_PUBLIC_THINGSPEAK_API_KEY;
 
-const DEFAULT_MAPPINGS: FieldMapping[] = [
+const FIELD_MAPPINGS = [
   { field: 'field1', type: 'co', label: 'CO Level', unit: 'ppm' },
   { field: 'field2', type: 'temperature', label: 'Temperature', unit: '°C' },
   { field: 'field3', type: 'humidity', label: 'Humidity', unit: '%' },
@@ -26,67 +23,33 @@ const DEFAULT_MAPPINGS: FieldMapping[] = [
   { field: 'field5', type: 'voc', label: 'IAQ VOC', unit: 'IAQ' },
 ];
 
-const getStoredSettings = (): ThingSpeakSettings => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      // Ensure fieldMappings exists (handle old localStorage format)
-      return {
-        channelId: parsed.channelId || '',
-        apiKey: parsed.apiKey || '',
-        fieldMappings: Array.isArray(parsed.fieldMappings) ? parsed.fieldMappings : DEFAULT_MAPPINGS,
-      };
-    } catch {
-      return { channelId: '', apiKey: '', fieldMappings: DEFAULT_MAPPINGS };
-    }
-  }
-  return { channelId: '', apiKey: '', fieldMappings: DEFAULT_MAPPINGS };
-};
-
+// --- HELPER FUNCTIONS ---
 const getStatusForType = (type: string, value: number): AQIStatus => {
   switch (type) {
-    case 'co':
-      return getCOStatus(value);
+    case 'co': return getCOStatus(value);
     case 'pm25':
-    case 'pm10':
-      return getPMStatus(value);
+    case 'pm10': return getPMStatus(value);
     case 'iaq':
     case 'voc':
-    case 'aqi_co':
-      return getIAQStatus(value);
-    default:
-      return getIAQStatus(50); // Default neutral status
+    case 'aqi_co': return getIAQStatus(value);
+    default: return getIAQStatus(50);
   }
 };
 
 const getIconForType = (type: string) => {
   switch (type) {
-    case 'co':
-      return <Flame className="h-5 w-5" />;
-    case 'pm25':
-    case 'pm10':
-      return <Wind className="h-5 w-5" />;
-    case 'temperature':
-      return <Thermometer className="h-5 w-5" />;
-    case 'humidity':
-      return <Droplets className="h-5 w-5" />;
-    case 'voc':
-    case 'iaq':
-      return <Activity className="h-5 w-5" />;
-    case 'aqi_co':
-      return <Gauge className="h-5 w-5" />;
-    default:
-      return <Activity className="h-5 w-5" />;
+    case 'co': return <Flame className="h-5 w-5" />;
+    case 'pm25': return <Wind className="h-5 w-5" />;
+    case 'temperature': return <Thermometer className="h-5 w-5" />;
+    case 'humidity': return <Droplets className="h-5 w-5" />;
+    default: return <Activity className="h-5 w-5" />;
   }
 };
 
 const Index = () => {
-  const [settings, setSettings] = useState<ThingSpeakSettings>(getStoredSettings);
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');
-  
-  const isConfigured = !!settings.channelId && !!settings.apiKey && settings.fieldMappings.length > 0;
 
+  // Fetch Data (Using hardcoded ID/Key)
   const {
     readings,
     historicalData,
@@ -96,205 +59,107 @@ const Index = () => {
     refetch,
     getReading,
   } = useThingSpeak({
-    channelId: settings.channelId,
-    apiKey: settings.apiKey,
-    fieldMappings: settings.fieldMappings,
+    channelId: CHANNEL_ID,
+    apiKey: READ_KEY,
+    fieldMappings: FIELD_MAPPINGS,
     refreshInterval: 15000,
     results: getResultsForTimeRange(timeRange),
   });
 
-  const handleSettingsSave = (newSettings: ThingSpeakSettings) => {
-    setSettings(newSettings);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+  // Calculations
+  const calculateAvg = (type: string) => {
+    if (!historicalData.length) return 0;
+    const values = historicalData.map(d => Number(d[type])).filter(v => !isNaN(v));
+    if (!values.length) return 0;
+    return values.reduce((a, b) => a + b, 0) / values.length;
   };
 
-  // Get primary reading for hero section (prefer IAQ, VOC, or AQI-CO)
   const primaryReading = getReading('iaq') || getReading('voc') || getReading('aqi_co') || readings[0];
   const primaryStatus = primaryReading ? getStatusForType(primaryReading.type, primaryReading.value) : getIAQStatus(50);
 
-  // Get worst status for health advisory
-  const statusPriority = ['hazardous', 'unhealthy', 'unhealthy-sensitive', 'moderate', 'good'];
-  const allStatuses = readings.map(r => getStatusForType(r.type, r.value));
-  const worstStatus = allStatuses.length > 0 
-    ? allStatuses.reduce((worst, current) => 
-        statusPriority.indexOf(current.level) < statusPriority.indexOf(worst.level) ? current : worst
-      )
-    : getIAQStatus(50);
-
-  // Group readings for display
-  const airQualityReadings = readings.filter(r => ['co', 'pm25', 'pm10', 'aqi_co', 'voc', 'iaq'].includes(r.type));
+  const airQualityReadings = readings.filter(r => ['co', 'pm25', 'pm10', 'voc', 'iaq'].includes(r.type));
   const environmentalReadings = readings.filter(r => ['temperature', 'humidity'].includes(r.type));
-  const otherReadings = readings.filter(r => !['co', 'pm25', 'pm10', 'aqi_co', 'voc', 'iaq', 'temperature', 'humidity'].includes(r.type));
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Config Bar */}
+      {/* HEADER */}
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="container py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground">ThingSpeak</span>
-            {isConfigured && (
-              <span className="text-xs text-muted-foreground">
-                Channel: {settings.channelId}
-              </span>
-            )}
+            <span className="text-sm font-medium text-foreground">AirMonitor IoT</span>
           </div>
           <div className="flex items-center gap-3">
-            {isConfigured && (
-              <ConnectionStatus
-                isConnected={!error && !isLoading}
-                isLoading={isLoading}
-                lastUpdated={lastUpdated}
-                error={error}
-                onRefresh={refetch}
-              />
-            )}
-            <ThingSpeakConfig
-              settings={settings}
-              onSave={handleSettingsSave}
-            />
+             <ConnectionStatus isConnected={!error && !isLoading} isLoading={isLoading} lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
           </div>
         </div>
       </div>
 
-      {/* Hero Section */}
-      <HeroSection 
-        iaq={primaryReading?.value || 50} 
-        location="Air Quality Monitor" 
-      />
+      {/* HERO */}
+      <HeroSection iaq={primaryReading?.value || 50} location="Laboratory" />
 
-      {/* Sensor Cards Section */}
+      {/* SENSOR CARDS */}
       <section className="py-12">
         <div className="container">
-          {!isConfigured ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">
-                Configure your ThingSpeak channel to see live sensor data.
-              </p>
-            </div>
-          ) : readings.length === 0 && !isLoading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                {error || 'No data available. Check your ThingSpeak configuration.'}
-              </p>
-            </div>
+          {readings.length === 0 && !isLoading ? (
+             <div className="text-center py-12"><p className="text-muted-foreground">{error || 'No data available.'}</p></div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {/* Air Quality Readings */}
               {airQualityReadings.map((reading, index) => (
-                <SensorCard
-                  key={reading.field}
-                  title={reading.label}
-                  subtitle={`ThingSpeak ${reading.field.replace('field', 'Field ')}`}
-                  icon={getIconForType(reading.type)}
-                  status={getStatusForType(reading.type, reading.value)}
-                  delay={`${0.1 * (index + 1)}s`}
-                >
+                <SensorCard key={reading.field} title={reading.label} subtitle="Real-time" icon={getIconForType(reading.type)} status={getStatusForType(reading.type, reading.value)} delay={`${0.1 * (index + 1)}s`}>
                   <div className="space-y-4">
-                    <Reading 
-                      label={reading.label}
-                      value={reading.value} 
-                      unit={reading.unit} 
-                      status={getStatusForType(reading.type, reading.value)}
-                      large
-                    />
+                    <Reading label={reading.label} value={reading.value} unit={reading.unit} status={getStatusForType(reading.type, reading.value)} large />
                   </div>
                 </SensorCard>
               ))}
-
-              {/* Environmental Card (grouped) */}
               {environmentalReadings.length > 0 && (
-                <SensorCard
-                  title="Environmental Data"
-                  subtitle="Temperature & Humidity"
-                  icon={<Thermometer className="h-5 w-5" />}
-                  status={getIAQStatus(50)}
-                  delay={`${0.1 * (airQualityReadings.length + 1)}s`}
-                >
+                <SensorCard title="Environment" subtitle="Lab Conditions" icon={<Thermometer className="h-5 w-5" />} status={getIAQStatus(50)} delay="0.5s">
                   <div className="space-y-4">
                     {environmentalReadings.map(reading => (
                       <div key={reading.field} className="flex items-center gap-3">
                         {getIconForType(reading.type)}
-                        <div>
-                          <span className="font-mono text-lg font-semibold text-foreground">
-                            {reading.value.toFixed(1)}
-                          </span>
-                          <span className="text-xs text-muted-foreground ml-1">
-                            {reading.unit}
-                          </span>
-                        </div>
-                        <span className="text-xs text-muted-foreground ml-auto">
-                          {reading.label}
-                        </span>
+                        <div><span className="font-mono text-lg font-semibold">{reading.value.toFixed(1)}</span><span className="text-xs text-muted-foreground ml-1">{reading.unit}</span></div>
+                        <span className="text-xs text-muted-foreground ml-auto">{reading.label}</span>
                       </div>
                     ))}
                   </div>
                 </SensorCard>
               )}
-
-              {/* Other Custom Readings */}
-              {otherReadings.map((reading, index) => (
-                <SensorCard
-                  key={reading.field}
-                  title={reading.label}
-                  subtitle={`ThingSpeak ${reading.field.replace('field', 'Field ')}`}
-                  icon={<Activity className="h-5 w-5" />}
-                  status={getIAQStatus(50)}
-                  delay={`${0.1 * (airQualityReadings.length + (environmentalReadings.length > 0 ? 1 : 0) + index + 1)}s`}
-                >
-                  <div className="space-y-4">
-                    <Reading 
-                      label={reading.label}
-                      value={reading.value} 
-                      unit={reading.unit} 
-                      status={getIAQStatus(50)}
-                      large
-                    />
-                  </div>
-                </SensorCard>
-              ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* Charts Section */}
-      {isConfigured && readings.length > 0 && historicalData.length > 0 && (
+      {/* CHARTS */}
+      {readings.length > 0 && (
         <section className="py-12 bg-secondary/20">
           <div className="container">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-bold text-foreground animate-fade-in">
-                Sensor Trends
-              </h2>
+              <h2 className="text-2xl font-bold">Trends</h2>
               <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
             </div>
-            
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {readings.map((reading, index) => (
-                <PollutantChart
-                  key={reading.field}
-                  title={reading.label}
-                  data={historicalData.map(d => ({ 
-                    time: d.time, 
-                    value: Number(d[reading.type]) || 0 
-                  }))}
-                  dataKey={reading.type}
-                  status={getStatusForType(reading.type, reading.value)}
-                  unit={reading.unit}
-                  delay={`${0.1 * (index + 1)}s`}
-                />
-              ))}
+            <div className="grid gap-6 md:grid-cols-2">
+              {airQualityReadings.map((reading) => {
+                const defaultType = (reading.type === 'aqi_co' || reading.type === 'voc') ? 'bar' : 'line';
+                return (
+                  <PollutantChart
+                    key={reading.field}
+                    title={reading.label}
+                    data={historicalData.map(d => ({ created_at: d.created_at, value: Number(d[reading.type]) || 0 }))}
+                    status={getStatusForType(reading.type, reading.value)}
+                    unit={reading.unit}
+                    avgValue={calculateAvg(reading.type)}
+                    currentValue={reading.value}
+                    currentTimeRange={timeRange}
+                    defaultChartType={defaultType}
+                  />
+                );
+              })}
             </div>
           </div>
         </section>
       )}
 
-      {/* Health Advisory */}
-      {isConfigured && readings.length > 0 && (
-        <HealthAdvisory status={worstStatus} />
-      )}
-
-      {/* Footer */}
+      {readings.length > 0 && <HealthAdvisory status={primaryStatus} />}
       <Footer />
     </div>
   );

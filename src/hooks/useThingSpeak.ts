@@ -6,7 +6,7 @@ interface ThingSpeakConfig {
   apiKey: string;
   fieldMappings: FieldMapping[];
   refreshInterval?: number;
-  results?: number;
+  results?: number; 
 }
 
 export interface SensorReading {
@@ -17,24 +17,9 @@ export interface SensorReading {
   field: string;
 }
 
-interface HistoricalDataPoint {
-  time: string;
+export interface HistoricalDataPoint {
+  created_at: string; // Keeps raw ISO date
   [key: string]: string | number;
-}
-
-interface ThingSpeakFeed {
-  created_at: string;
-  entry_id: number;
-  [key: string]: string | number | null;
-}
-
-interface ThingSpeakResponse {
-  channel: {
-    id: number;
-    name: string;
-    [key: string]: string | number;
-  };
-  feeds: ThingSpeakFeed[];
 }
 
 const parseValue = (value: string | number | null | undefined): number => {
@@ -43,17 +28,8 @@ const parseValue = (value: string | number | null | undefined): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-const formatTime = (isoString: string): string => {
-  const date = new Date(isoString);
-  return date.toLocaleTimeString('en-US', { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: false 
-  });
-};
-
 export const useThingSpeak = (config: ThingSpeakConfig) => {
-  const { channelId, apiKey, fieldMappings, refreshInterval = 15000, results = 144 } = config;
+  const { channelId, apiKey, fieldMappings, refreshInterval = 15000, results = 1000 } = config;
   
   const [readings, setReadings] = useState<SensorReading[]>([]);
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
@@ -61,99 +37,60 @@ export const useThingSpeak = (config: ThingSpeakConfig) => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchLatestData = useCallback(async () => {
-    if (!channelId || !apiKey || fieldMappings.length === 0) return;
-
-    try {
-      const response = await fetch(
-        `https://api.thingspeak.com/channels/${channelId}/feeds/last.json?api_key=${apiKey}`
-      );
-      
-      if (!response.ok) {
-        throw new Error(`ThingSpeak API error: ${response.status}`);
-      }
-      
-      const data: ThingSpeakFeed = await response.json();
-      
-      const newReadings: SensorReading[] = fieldMappings.map(mapping => ({
-        type: mapping.type,
-        label: mapping.label,
-        value: parseValue(data[mapping.field]),
-        unit: mapping.unit,
-        field: mapping.field,
-      }));
-      
-      setReadings(newReadings);
-      setLastUpdated(new Date(data.created_at));
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching latest ThingSpeak data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+  const fetchData = useCallback(async () => {
+    if (!channelId || !apiKey || fieldMappings.length === 0) {
+      setIsLoading(false); return;
     }
-  }, [channelId, apiKey, fieldMappings]);
-
-  const fetchHistoricalData = useCallback(async () => {
-    if (!channelId || !apiKey || fieldMappings.length === 0) return;
 
     try {
       const response = await fetch(
         `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${apiKey}&results=${results}`
       );
       
-      if (!response.ok) {
-        throw new Error(`ThingSpeak API error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`API Error: ${response.status}`);
       
-      const data: ThingSpeakResponse = await response.json();
-      
-      const historical: HistoricalDataPoint[] = data.feeds.map(feed => {
-        const point: HistoricalDataPoint = { time: formatTime(feed.created_at) };
-        fieldMappings.forEach(mapping => {
-          point[mapping.type] = parseValue(feed[mapping.field]);
+      const data = await response.json();
+      const rawFeeds = data.feeds || [];
+
+      if (rawFeeds.length > 0) {
+        // 1. Process History
+        const history = rawFeeds.map((feed: any) => {
+          const point: HistoricalDataPoint = { created_at: feed.created_at };
+          fieldMappings.forEach(mapping => {
+            point[mapping.type] = parseValue(feed[mapping.field]);
+          });
+          return point;
         });
-        return point;
-      });
-      
-      setHistoricalData(historical);
+        setHistoricalData(history);
+
+        // 2. Process Latest (Last item in history)
+        const lastFeed = rawFeeds[rawFeeds.length - 1];
+        setLastUpdated(new Date(lastFeed.created_at));
+        
+        setReadings(fieldMappings.map(mapping => ({
+          type: mapping.type,
+          label: mapping.label,
+          value: parseValue(lastFeed[mapping.field]),
+          unit: mapping.unit,
+          field: mapping.field,
+        })));
+      }
+      setError(null);
     } catch (err) {
-      console.error('Error fetching historical ThingSpeak data:', err);
+      console.error(err);
+      setError('Failed to load data');
+    } finally {
+      setIsLoading(false);
     }
   }, [channelId, apiKey, fieldMappings, results]);
 
-  const fetchAllData = useCallback(async () => {
-    setIsLoading(true);
-    await Promise.all([fetchLatestData(), fetchHistoricalData()]);
-    setIsLoading(false);
-  }, [fetchLatestData, fetchHistoricalData]);
-
   useEffect(() => {
-    if (!channelId || !apiKey || fieldMappings.length === 0) {
-      setIsLoading(false);
-      return;
-    }
-
-    fetchAllData();
-
-    const interval = setInterval(() => {
-      fetchLatestData();
-      fetchHistoricalData();
-    }, refreshInterval);
-
+    fetchData();
+    const interval = setInterval(fetchData, refreshInterval);
     return () => clearInterval(interval);
-  }, [channelId, apiKey, fieldMappings, refreshInterval, fetchAllData, fetchLatestData, fetchHistoricalData]);
+  }, [fetchData, refreshInterval]);
 
-  // Helper to get a specific reading by type
-  const getReading = (type: string): SensorReading | undefined => {
-    return readings.find(r => r.type === type);
-  };
+  const getReading = (type: string) => readings.find(r => r.type === type);
 
-  return {
-    readings,
-    historicalData,
-    isLoading,
-    error,
-    lastUpdated,
-    refetch: fetchAllData,
-    getReading,
-  };
+  return { readings, historicalData, isLoading, error, lastUpdated, refetch: fetchData, getReading };
 };

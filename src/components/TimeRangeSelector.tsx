@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export type TimeRange = '12h' | '24h' | '1w' | '1m';
+export type TimeRange = '12h' | '24h' | '1w';
 
 interface TimeRangeSelectorProps {
   value: TimeRange;
@@ -8,16 +8,15 @@ interface TimeRangeSelectorProps {
 }
 
 const timeRangeOptions: { value: TimeRange; label: string }[] = [
-  { value: '12h', label: '12 Hours' },
-  { value: '24h', label: '24 Hours' },
-  { value: '1w', label: '1 Week' },
-  { value: '1m', label: '1 Month' },
+  { value: '12h', label: 'Last 12 Hours' },
+  { value: '24h', label: 'Last 24 Hours' },
+  { value: '1w', label: 'Last 7 Days' },
 ];
 
 export const TimeRangeSelector = ({ value, onChange }: TimeRangeSelectorProps) => {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as TimeRange)}>
-      <SelectTrigger className="w-[130px] h-9 text-sm">
+      <SelectTrigger className="w-[140px] h-9 text-sm border-border bg-card">
         <SelectValue placeholder="Time range" />
       </SelectTrigger>
       <SelectContent>
@@ -31,17 +30,12 @@ export const TimeRangeSelector = ({ value, onChange }: TimeRangeSelectorProps) =
   );
 };
 
+// LOGIC: (Total Seconds / 20s Update Rate)
 export const getResultsForTimeRange = (timeRange: TimeRange): number => {
   switch (timeRange) {
-    case '12h':
-      return 72; // ~10 min intervals for 12 hours
-    case '24h':
-      return 144; // ~10 min intervals for 24 hours
-    case '1w':
-      return 504; // ~20 min intervals for 1 week
-    case '1m':
-      return 720; // ~1 hour intervals for 1 month
-    default:
-      return 144;
+    case '12h': return 2200; 
+    case '24h': return 4500; 
+    case '1w': return 8000;  // ThingSpeak Max Limit
+    default: return 100;
   }
 };
