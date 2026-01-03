@@ -21,6 +21,8 @@ const FIELD_MAPPINGS = [
   { field: 'field3', type: 'humidity', label: 'Humidity', unit: '%' },
   { field: 'field4', type: 'aqi_co', label: 'AQI-CO', unit: 'AQI' },
   { field: 'field5', type: 'voc', label: 'IAQ VOC', unit: 'IAQ' },
+  { field: 'field6', type: 'pm25', label: 'PM 2.5', unit: 'µg/m³' },
+  { field: 'field7', type: 'pm10', label: 'PM 10', unit: 'µg/m³' },
 ];
 
 // --- HELPER FUNCTIONS ---
