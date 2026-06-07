@@ -208,7 +208,7 @@ const Index = () => {
             </div>
             <div className="grid gap-6 md:grid-cols-2">
               {airQualityReadings.map((reading) => {
-                const defaultType = (reading.type === 'aqi_co' || reading.type === 'voc') ? 'bar' : 'line';
+                const defaultType = 'line';
                 return (
                   <PollutantChart
                     key={reading.field}
