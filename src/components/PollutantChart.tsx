@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { AreaChart, Area, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { AQIStatus, formatThingSpeakDate, AQI_COLORS, getIAQStatus } from '@/lib/aqiUtils';
 import { BarChart3, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,18 +13,22 @@ interface PollutantChartProps {
   avgValue: number;
   currentValue: number;
   currentTimeRange: TimeRange;
+  epaLimit?: number; // Make it optional so it doesn't break existing charts
+  limitLabel?: string; // Optional label for the EPA limit line
   defaultChartType?: 'line' | 'bar';
 }
 
-export const PollutantChart = ({ 
-  title, 
-  data, 
-  status, 
-  unit, 
-  avgValue, 
-  currentValue, 
+export const PollutantChart = ({
+  title,
+  data,
+  status,
+  unit,
+  avgValue,
+  currentValue,
   currentTimeRange,
-  defaultChartType = 'line' 
+  epaLimit,
+  limitLabel,
+  defaultChartType = 'line'
 }: PollutantChartProps) => {
   const [chartType, setChartType] = useState<'line' | 'bar'>(defaultChartType);
   const baseChartId = title.replace(/\s+/g, '-');
@@ -36,7 +40,7 @@ export const PollutantChart = ({
     const now = new Date();
     const endTime = now.getTime();
     let startTime = endTime;
-    let interval = 3600 * 1000; 
+    let interval = 3600 * 1000;
 
     if (currentTimeRange === '12h') {
       startTime = endTime - (12 * 60 * 60 * 1000);
@@ -71,7 +75,7 @@ export const PollutantChart = ({
       .sort((a, b) => a[0] - b[0])
       .map(([time, { sum, count }]) => ({
         created_at: time,
-        value: count > 0 ? sum / count : 0, 
+        value: count > 0 ? sum / count : 0,
       }));
   }, [data, currentTimeRange]);
 
@@ -100,27 +104,27 @@ export const PollutantChart = ({
             </span>
           </div>
         </div>
-        
+
         <div className="flex bg-muted rounded-lg p-1">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={`h-7 w-7 p-0 ${chartType === 'line' ? 'bg-background shadow-sm' : ''}`} 
-              onClick={() => setChartType('line')}
-            >
-              <TrendingUp className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={`h-7 w-7 p-0 ${chartType === 'bar' ? 'bg-background shadow-sm' : ''}`} 
-              onClick={() => setChartType('bar')}
-            >
-              <BarChart3 className="h-4 w-4" />
-            </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-7 w-7 p-0 ${chartType === 'line' ? 'bg-background shadow-sm' : ''}`}
+            onClick={() => setChartType('line')}
+          >
+            <TrendingUp className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-7 w-7 p-0 ${chartType === 'bar' ? 'bg-background shadow-sm' : ''}`}
+            onClick={() => setChartType('bar')}
+          >
+            <BarChart3 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
-      
+
       <div className="h-[250px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           {chartType === 'line' ? (
@@ -136,56 +140,74 @@ export const PollutantChart = ({
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="created_at" 
-                tickFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)} 
-                tick={{ fontSize: 10 }} 
-                axisLine={false} 
-                tickLine={false} 
+              <XAxis
+                dataKey="created_at"
+                tickFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)}
+                tick={{ fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
                 minTickGap={40}
               />
               <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip 
-                contentStyle={{ borderRadius: '8px', border: 'none' }} 
-                labelFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)} 
+              <Tooltip
+                contentStyle={{ borderRadius: '8px', border: 'none' }}
+                labelFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)}
               />
-              <Area 
-                type="monotone" 
-                dataKey="value" 
+              {/* ADD THIS BLOCK FOR THE EPA LIMIT */}
+              {epaLimit && (
+                <ReferenceLine
+                  y={epaLimit}
+                  stroke="#ff0000"
+                  strokeDasharray="4 4"
+                  label={{ position: 'top', value: limitLabel || 'EPA Standard', fill: '#ff0000', fontSize: 12 }}
+                />
+              )}
+              <Area
+                type="monotone"
+                dataKey="value"
                 stroke={`url(#${lineGradientId})`} // Apply gradient to the line
                 fill={`url(#${fillGradientId})`}   // Apply gradient to the fill
                 strokeWidth={3} // Made line slightly thicker for visibility
-                connectNulls 
+                connectNulls
               />
             </AreaChart>
           ) : (
-            <BarChart 
-              data={chartData} 
+            <BarChart
+              data={chartData}
               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
               barCategoryGap="20%"
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="created_at" 
-                tickFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)} 
-                tick={{ fontSize: 10 }} 
-                axisLine={false} 
-                tickLine={false} 
+              <XAxis
+                dataKey="created_at"
+                tickFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)}
+                tick={{ fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
                 minTickGap={40}
               />
               <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip 
-                cursor={{fill: 'transparent'}} 
-                contentStyle={{ borderRadius: '8px', border: 'none' }} 
-                labelFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)} 
+              <Tooltip
+                cursor={{ fill: 'transparent' }}
+                contentStyle={{ borderRadius: '8px', border: 'none' }}
+                labelFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)}
               />
-              <Bar 
-                dataKey="value" 
-                radius={[4, 4, 0, 0]} 
+              {/* ADD THIS BLOCK FOR THE EPA LIMIT */}
+              {epaLimit && (
+                <ReferenceLine
+                  y={epaLimit}
+                  stroke="#ff0000"
+                  strokeDasharray="4 4"
+                  label={{ position: 'top', value: limitLabel || 'EPA Standard', fill: '#ff0000', fontSize: 12 }}
+                />
+              )}
+              <Bar
+                dataKey="value"
+                radius={[4, 4, 0, 0]}
               >
                 {/* INDIVIDUAL BAR COLORING LOOP */}
                 {chartData.map((entry, index) => {
-                  const barStatus = getIAQStatus(entry.value); 
+                  const barStatus = getIAQStatus(entry.value);
                   return <Cell key={`cell-${index}`} fill={barStatus.color} />;
                 })}
               </Bar>

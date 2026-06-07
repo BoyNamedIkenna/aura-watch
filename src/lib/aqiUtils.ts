@@ -190,3 +190,40 @@ export const getHealthAdvisory = (status: AQIStatus): string => {
     default: return 'No data available.';
   }
 };
+
+export const calculateHourlyAverages = (feeds: any[]) => {
+  if (!feeds || feeds.length === 0) return [];
+
+  const groupedByHour: { [key: string]: any[] } = {};
+
+  // Group feeds by the hour they were recorded
+  feeds.forEach((feed) => {
+    const date = new Date(feed.created_at);
+    // Format key as "YYYY-MM-DD HH:00"
+    const hourKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours()}:00`;
+    
+    if (!groupedByHour[hourKey]) {
+      groupedByHour[hourKey] = [];
+    }
+    groupedByHour[hourKey].push(feed);
+  });
+
+  // Calculate the average for each hour
+  return Object.keys(groupedByHour).map((hourKey) => {
+    const group = groupedByHour[hourKey];
+    
+    // Average out the specific ThingSpeak fields (adjust field1, field2, etc., to your setup)
+    const avgField1 = group.reduce((sum, f) => sum + parseFloat(f.field1 || 0), 0) / group.length;
+    const avgField2 = group.reduce((sum, f) => sum + parseFloat(f.field2 || 0), 0) / group.length;
+    // Add other fields as necessary...
+
+    return {
+      time: hourKey, // This will show up on the X-axis
+      field1: avgField1.toFixed(2),
+      field2: avgField2.toFixed(2),
+      // Map to your pollutant names
+      pm25: avgField1.toFixed(2),
+      co: avgField2.toFixed(2)
+    };
+  });
+};

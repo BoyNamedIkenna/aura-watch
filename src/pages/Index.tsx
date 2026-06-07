@@ -8,10 +8,10 @@ import { Footer } from '@/components/Footer';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { TimeRangeSelector, type TimeRange, getResultsForTimeRange } from '@/components/TimeRangeSelector';
 import { useThingSpeak } from '@/hooks/useThingSpeak';
-import { getIAQStatus, getCOStatus, getPMStatus, type AQIStatus } from '@/lib/aqiUtils';
+import { getIAQStatus, getCOStatus, getPMStatus,calculateHourlyAverages, type AQIStatus } from '@/lib/aqiUtils';
 
 // --- HARDCODED CONFIGURATION ---
-const CHANNEL_ID = import.meta.env.VITE_PUBLIC_THINGSPEAK_CHANNEL_ID; 
+const CHANNEL_ID = import.meta.env.VITE_PUBLIC_THINGSPEAK_CHANNEL_ID;
 const READ_KEY = import.meta.env.VITE_PUBLIC_THINGSPEAK_API_KEY;
 
 const FIELD_MAPPINGS = [
@@ -23,6 +23,13 @@ const FIELD_MAPPINGS = [
   { field: 'field6', type: 'pm25', label: 'PM 2.5', unit: 'µg/m³' },
   { field: 'field7', type: 'pm10', label: 'PM 10', unit: 'µg/m³' },
 ];
+
+const EPA_LIMITS: Record<string, number> = {
+  pm25: 15.0,
+  pm10: 50.0,
+  co: 9.0,
+  voc: 50.0 // Standard 'Good' IAQ threshold
+};
 
 // --- 1. AQI MATH HELPERS (EPA FORMULA) ---
 const calcPM25_AQI = (c: number): number => {
@@ -39,14 +46,14 @@ const calcPM10_AQI = (c: number): number => {
   if (c <= 154) return Math.round(((100 - 51) / (154 - 55)) * (c - 55) + 51);
   if (c <= 254) return Math.round(((150 - 101) / (254 - 155)) * (c - 155) + 101);
   if (c <= 354) return Math.round(((200 - 151) / (354 - 255)) * (c - 255) + 151);
-  return 300; 
+  return 300;
 };
 
 // --- HELPER: ROUTE TO STATUS OBJECT ---
 const getStatusForType = (type: string, value: number): AQIStatus => {
   switch (type) {
     case 'co': return getCOStatus(value); // Raw CO uses specific scale
-    case 'pm25': 
+    case 'pm25':
     case 'pm10': return getPMStatus(value); // Uses raw value thresholds
     case 'iaq':
     case 'voc':
@@ -58,7 +65,7 @@ const getStatusForType = (type: string, value: number): AQIStatus => {
 const getIconForType = (type: string) => {
   switch (type) {
     case 'co': return <Flame className="h-5 w-5" />;
-    case 'pm25': 
+    case 'pm25':
     case 'pm10': return <Wind className="h-5 w-5" />;
     case 'temperature': return <Thermometer className="h-5 w-5" />;
     case 'humidity': return <Droplets className="h-5 w-5" />;
@@ -68,6 +75,7 @@ const getIconForType = (type: string) => {
 
 const Index = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');
+  const [viewMode, setViewMode] = useState<'live' | 'hourly'>('live');
 
   const {
     readings,
@@ -92,6 +100,18 @@ const Index = () => {
     return values.reduce((a, b) => a + b, 0) / values.length;
   };
 
+  // Inside your main component:
+  const latestFeed = historicalData && historicalData.length > 0 ? historicalData[historicalData.length - 1] : null;
+  // Calculate latency in seconds
+  const getLatency = () => {
+    if (!latestFeed) return 'N/A';
+    const feedTime = new Date(latestFeed.created_at).getTime();
+    const currentTime = new Date().getTime();
+    const diffInSeconds = Math.floor((currentTime - feedTime) / 1000);
+
+    return `${diffInSeconds}s ago`;
+  };
+
   // --- 2. CALCULATE OVERALL "WORST" AQI ---
   const coAQI = getReading('aqi_co')?.value || 0;
   const vocIAQ = getReading('voc')?.value || 0;
@@ -104,7 +124,7 @@ const Index = () => {
 
   // Find the winner (The highest number determines the Overall AQI)
   const overallAQI = Math.max(coAQI, vocIAQ, pm25AQI, pm10AQI);
-  
+
   // Determine which pollutant is responsible
   let mainPollutant = "Air Quality";
   if (overallAQI === coAQI) mainPollutant = "Carbon Monoxide";
@@ -127,14 +147,14 @@ const Index = () => {
             <span className="text-sm font-medium text-foreground">AirMonitor IoT</span>
           </div>
           <div className="flex items-center gap-3">
-             <ConnectionStatus isConnected={!error && !isLoading} isLoading={isLoading} lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
+            <ConnectionStatus isConnected={!error && !isLoading} isLoading={isLoading} lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
           </div>
         </div>
       </div>
 
       {/* HERO SECTION - UPDATED TO SHOW CALCULATED OVERALL AQI */}
-      <HeroSection 
-        iaq={overallAQI} 
+      <HeroSection
+        iaq={overallAQI}
         location={`Pollutant: ${mainPollutant}`} // Shows which sensor is triggering the alert
       />
 
@@ -142,7 +162,7 @@ const Index = () => {
       <section className="py-12">
         <div className="container">
           {readings.length === 0 && !isLoading ? (
-             <div className="text-center py-12"><p className="text-muted-foreground">{error || 'No data available.'}</p></div>
+            <div className="text-center py-12"><p className="text-muted-foreground">{error || 'No data available.'}</p></div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {airQualityReadings.map((reading, index) => (
@@ -176,7 +196,15 @@ const Index = () => {
           <div className="container">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-bold">Trends</h2>
-              <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setViewMode(viewMode === 'live' ? 'hourly' : 'live')}
+                  className="px-4 py-2 text-sm bg-primary/10 rounded-md hover:bg-primary/20 transition-colors"
+                >
+                  View: {viewMode === 'live' ? 'Live Data' : 'Hourly Averages'}
+                </button>
+                <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+              </div>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
               {airQualityReadings.map((reading) => {
@@ -185,13 +213,27 @@ const Index = () => {
                   <PollutantChart
                     key={reading.field}
                     title={reading.label}
-                    data={historicalData.map(d => ({ created_at: d.created_at, value: Number(d[reading.type]) || 0 }))}
+                    data={
+                      viewMode === 'hourly'
+                        // If Hourly, run our utility function (make sure to import it!)
+                        ? calculateHourlyAverages(historicalData).map(d => ({
+                          created_at: d.time,
+                          value: Number(d[reading.type]) || 0
+                        }))
+                        // If Live, show the raw data like you currently have
+                        : historicalData.map(d => ({
+                          created_at: d.created_at,
+                          value: Number(d[reading.type]) || 0
+                        }))
+                    }
                     status={getStatusForType(reading.type, reading.value)}
                     unit={reading.unit}
                     avgValue={calculateAvg(reading.type)}
                     currentValue={reading.value}
                     currentTimeRange={timeRange}
                     defaultChartType={defaultType}
+                    epaLimit={EPA_LIMITS[reading.type]}
+                    limitLabel={`EPA Limit (${EPA_LIMITS[reading.type]} ${reading.unit})`}
                   />
                 );
               })}
@@ -199,6 +241,14 @@ const Index = () => {
           </div>
         </section>
       )}
+
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+        </span>
+        Last transmission: {latestFeed ? getLatency() : 'Waiting for ESP32...'}
+      </div>
 
       {readings.length > 0 && <HealthAdvisory status={overallStatus} />}
       <Footer />
