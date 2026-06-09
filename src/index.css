@@ -41,6 +41,7 @@
     --aqi-moderate: 45 93% 50%;
     --aqi-unhealthy-sensitive: 25 95% 53%;
     --aqi-unhealthy: 0 84% 55%;
+    --aqi-very-unhealthy: 280 60% 35%;
     --aqi-hazardous: 280 60% 35%;
 
     /* Gradients */
@@ -48,6 +49,7 @@
     --gradient-moderate: linear-gradient(135deg, hsl(45 93% 50% / 0.2), hsl(45 93% 50% / 0.05));
     --gradient-unhealthy-sensitive: linear-gradient(135deg, hsl(25 95% 53% / 0.2), hsl(25 95% 53% / 0.05));
     --gradient-unhealthy: linear-gradient(135deg, hsl(0 84% 55% / 0.2), hsl(0 84% 55% / 0.05));
+    --gradient-very-unhealthy: linear-gradient(135deg, hsl(280 60% 35% / 0.2), hsl(280 60% 35% / 0.05));
     --gradient-hazardous: linear-gradient(135deg, hsl(280 60% 35% / 0.2), hsl(280 60% 35% / 0.05));
 
     /* Shadows */
@@ -109,6 +111,11 @@
     background: var(--gradient-unhealthy);
     box-shadow: var(--shadow-glow-unhealthy);
   }
+  .aqi-card-very-unhealthy {
+    @apply border-aqi-very-unhealthy/30;
+    background: var(--gradient-very-unhealthy);
+    box-shadow: 0 0 60px hsl(280 60% 35% / 0.3);
+  }
 
   .aqi-card-hazardous {
     @apply border-aqi-hazardous/30;
@@ -138,6 +145,9 @@
   .text-aqi-unhealthy {
     color: hsl(var(--aqi-unhealthy));
   }
+  .text-aqi-very-unhealthy   { 
+    color: hsl(var(--aqi-very-unhealthy)); 
+  }
   .text-aqi-hazardous {
     color: hsl(var(--aqi-hazardous));
   }
@@ -154,6 +164,9 @@
   .bg-aqi-unhealthy {
     background-color: hsl(var(--aqi-unhealthy));
   }
+  .bg-aqi-very-unhealthy { 
+    background-color: hsl(var(--aqi-very-unhealthy)); 
+  }
   .bg-aqi-hazardous {
     background-color: hsl(var(--aqi-hazardous));
   }
@@ -169,6 +182,9 @@
   }
   .border-aqi-unhealthy {
     border-color: hsl(var(--aqi-unhealthy));
+  }
+  .border-aqi-very-unhealthy { 
+    border-color: hsl(var(--aqi-very-unhealthy)); 
   }
   .border-aqi-hazardous {
     border-color: hsl(var(--aqi-hazardous));

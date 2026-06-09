@@ -8,11 +8,12 @@ import { Footer } from '@/components/Footer';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { TimeRangeSelector, type TimeRange, getResultsForTimeRange } from '@/components/TimeRangeSelector';
 import { useThingSpeak } from '@/hooks/useThingSpeak';
-import { getIAQStatus, getCOStatus, getPMStatus,calculateHourlyAverages, type AQIStatus } from '@/lib/aqiUtils';
+import { getIAQStatus, getCOStatus, getPMStatus,getPM10Status,calculateHourlyAverages, type AQIStatus } from '@/lib/aqiUtils';
 
 // --- HARDCODED CONFIGURATION ---
 const CHANNEL_ID = import.meta.env.VITE_PUBLIC_THINGSPEAK_CHANNEL_ID;
 const READ_KEY = import.meta.env.VITE_PUBLIC_THINGSPEAK_API_KEY;
+const REFRESH_INTERVAL_MS = 15000;
 
 const FIELD_MAPPINGS = [
   { field: 'field1', type: 'co', label: 'CO Level', unit: 'ppm' },
@@ -31,34 +32,35 @@ const EPA_LIMITS: Record<string, number> = {
   voc: 50.0 // Standard 'Good' IAQ threshold
 };
 
-// --- 1. AQI MATH HELPERS (EPA FORMULA) ---
 const calcPM25_AQI = (c: number): number => {
-  if (c <= 12.0) return Math.round(((50 - 0) / (12.0 - 0)) * (c - 0) + 0);
-  if (c <= 35.4) return Math.round(((100 - 51) / (35.4 - 12.1)) * (c - 12.1) + 51);
-  if (c <= 55.4) return Math.round(((150 - 101) / (55.4 - 35.5)) * (c - 35.5) + 101);
+  if (c <= 12.0)  return Math.round(((50 - 0) / (12.0 - 0)) * c);
+  if (c <= 35.4)  return Math.round(((100 - 51) / (35.4 - 12.1)) * (c - 12.1) + 51);
+  if (c <= 55.4)  return Math.round(((150 - 101) / (55.4 - 35.5)) * (c - 35.5) + 101);
   if (c <= 150.4) return Math.round(((200 - 151) / (150.4 - 55.5)) * (c - 55.5) + 151);
   if (c <= 250.4) return Math.round(((300 - 201) / (250.4 - 150.5)) * (c - 150.5) + 201);
-  return 300; // Hazardous
+  if (c <= 500.4) return Math.round(((500 - 301) / (500.4 - 250.5)) * (c - 250.5) + 301); // Hazardous
+  return 500;
 };
 
 const calcPM10_AQI = (c: number): number => {
-  if (c <= 54) return Math.round(((50 - 0) / (54 - 0)) * (c - 0) + 0);
+  if (c <= 54)  return Math.round(((50 - 0) / (54 - 0)) * c);
   if (c <= 154) return Math.round(((100 - 51) / (154 - 55)) * (c - 55) + 51);
   if (c <= 254) return Math.round(((150 - 101) / (254 - 155)) * (c - 155) + 101);
   if (c <= 354) return Math.round(((200 - 151) / (354 - 255)) * (c - 255) + 151);
-  return 300;
+  if (c <= 424) return Math.round(((300 - 201) / (424 - 355)) * (c - 355) + 201);
+  if (c <= 604) return Math.round(((500 - 301) / (604 - 425)) * (c - 425) + 301); // Hazardous
+  return 500;
 };
 
-// --- HELPER: ROUTE TO STATUS OBJECT ---
 const getStatusForType = (type: string, value: number): AQIStatus => {
   switch (type) {
-    case 'co': return getCOStatus(value); // Raw CO uses specific scale
-    case 'pm25':
-    case 'pm10': return getPMStatus(value); // Uses raw value thresholds
-    case 'iaq':
+    case 'co':   return getCOStatus(value);
+    case 'pm25': return getPMStatus(value);
+    case 'pm10': return getPM10Status(value);  // ← was wrongly using getPMStatus
     case 'voc':
-    case 'aqi_co': return getIAQStatus(value); // 0-500 scale
-    default: return getIAQStatus(50);
+    case 'iaq':
+    case 'aqi_co': return getIAQStatus(value);
+    default: return getIAQStatus(0);
   }
 };
 
@@ -75,7 +77,7 @@ const getIconForType = (type: string) => {
 
 const Index = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');
-  //const [viewMode, setViewMode] = useState<'live' | 'hourly'>('live');
+  const [viewMode, setViewMode] = useState<'live' | 'hourly'>('live');
 
   const {
     readings,
@@ -89,7 +91,7 @@ const Index = () => {
     channelId: CHANNEL_ID,
     apiKey: READ_KEY,
     fieldMappings: FIELD_MAPPINGS,
-    refreshInterval: 15000,
+    refreshInterval: REFRESH_INTERVAL_MS,
     results: getResultsForTimeRange(timeRange),
   });
 
@@ -168,7 +170,7 @@ const Index = () => {
                 </SensorCard>
               ))}
               {environmentalReadings.length > 0 && (
-                <SensorCard title="Environment" subtitle="Lab Conditions" icon={<Thermometer className="h-5 w-5" />} status={getIAQStatus(50)} delay="0.5s">
+                <SensorCard title="Environment" subtitle="Lab Conditions" icon={<Thermometer className="h-5 w-5" />} status={getIAQStatus(0)} delay="0.5s">
                   <div className="space-y-4">
                     {environmentalReadings.map(reading => (
                       <div key={reading.field} className="flex items-center gap-3">
@@ -192,12 +194,12 @@ const Index = () => {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-bold">Trends</h2>
               <div className="flex gap-4">
-{/*                 <button
+             <button
                   onClick={() => setViewMode(viewMode === 'live' ? 'hourly' : 'live')}
                   className="px-4 py-2 text-sm bg-primary/10 rounded-md hover:bg-primary/20 transition-colors"
                 >
                   View: {viewMode === 'live' ? 'Live Data' : 'Hourly Averages'}
-                </button> */}
+                </button> 
                 <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
               </div>
             </div>
@@ -208,15 +210,14 @@ const Index = () => {
                   <PollutantChart
                     key={reading.field}
                     title={reading.label}
-                    data={
-                    /*   viewMode === 'hourly'
+                    data={ viewMode === 'hourly'
                         // If Hourly, run our utility function (make sure to import it!)
                         ? calculateHourlyAverages(historicalData).map(d => ({
-                          created_at: d.time,
+                          created_at: d.created_at,
                           value: Number(d[reading.type]) || 0
                         }))
                         // If Live, show the raw data like you currently have
-                        :  */historicalData.map(d => ({
+                        :  historicalData.map(d => ({
                           created_at: d.created_at,
                           value: Number(d[reading.type]) || 0
                         }))

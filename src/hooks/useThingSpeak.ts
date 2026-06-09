@@ -25,7 +25,7 @@ const parseValue = (value: string | number | null | undefined): number => {
 };
 
 export const useThingSpeak = (config: ThingSpeakConfig) => {
-  const { channelId, apiKey, fieldMappings, refreshInterval = 15000, results = 1000 } = config;
+  const { channelId, apiKey, fieldMappings, refreshInterval, results = 1000 } = config;
   
   const [readings, setReadings] = useState<SensorReading[]>([]);
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
