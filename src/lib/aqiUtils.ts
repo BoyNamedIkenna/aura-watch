@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// 1. US EPA STANDARD HEX CODES
+/* // 1. US EPA STANDARD HEX CODES
 export const AQI_COLORS = {
   good: '#009966',       
   moderate: '#FFDE33',   
@@ -13,7 +13,19 @@ export const AQI_COLORS = {
   unhealthy: '#CC0033',  
   veryUnhealthy: '#660099', 
   hazardous: '#7E0023',  
+}; */
+export const AQI_COLORS = {
+  good: 'hsl(142 76% 45%)',
+  moderate: 'hsl(45 93% 50%)',
+  sensitive: 'hsl(25 95% 53%)',
+  unhealthy: 'hsl(0 84% 55%)',
+  hazardous: 'hsl(280 60% 35%)',
 };
+
+export interface HistoricalDataPoint {
+  created_at: string;
+  [key: string]: string | number;
+}
 
 // 2. DATE FORMATTER (Required for Charts)
 export const formatThingSpeakDate = (isoString: string, range: string): string => {
@@ -191,39 +203,30 @@ export const getHealthAdvisory = (status: AQIStatus): string => {
   }
 };
 
-export const calculateHourlyAverages = (feeds: any[]) => {
+export const calculateHourlyAverages = (feeds: HistoricalDataPoint[]): HistoricalDataPoint[] => {
   if (!feeds || feeds.length === 0) return [];
 
-  const groupedByHour: { [key: string]: any[] } = {};
+  const groupedByHour: { [key: string]: HistoricalDataPoint[] } = {};
 
-  // Group feeds by the hour they were recorded
   feeds.forEach((feed) => {
     const date = new Date(feed.created_at);
-    // Format key as "YYYY-MM-DD HH:00"
     const hourKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours()}:00`;
-    
-    if (!groupedByHour[hourKey]) {
-      groupedByHour[hourKey] = [];
-    }
+    if (!groupedByHour[hourKey]) groupedByHour[hourKey] = [];
     groupedByHour[hourKey].push(feed);
   });
 
-  // Calculate the average for each hour
   return Object.keys(groupedByHour).map((hourKey) => {
     const group = groupedByHour[hourKey];
-    
-    // Average out the specific ThingSpeak fields (adjust field1, field2, etc., to your setup)
-    const avgField1 = group.reduce((sum, f) => sum + parseFloat(f.field1 || 0), 0) / group.length;
-    const avgField2 = group.reduce((sum, f) => sum + parseFloat(f.field2 || 0), 0) / group.length;
-    // Add other fields as necessary...
 
-    return {
-      time: hourKey, // This will show up on the X-axis
-      field1: avgField1.toFixed(2),
-      field2: avgField2.toFixed(2),
-      // Map to your pollutant names
-      pm25: avgField1.toFixed(2),
-      co: avgField2.toFixed(2)
-    };
+    // Get all keys except created_at, then average each one dynamically
+    const typeKeys = Object.keys(group[0]).filter(k => k !== 'created_at');
+
+    const averaged: HistoricalDataPoint = { created_at: hourKey };
+    typeKeys.forEach((key) => {
+      const avg = group.reduce((sum, f) => sum + Number(f[key] || 0), 0) / group.length;
+      averaged[key] = parseFloat(avg.toFixed(2));
+    });
+
+    return averaged;
   });
 };

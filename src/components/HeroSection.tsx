@@ -22,11 +22,6 @@ export const HeroSection = ({ iaq, location }: HeroSectionProps) => {
       
       <div className="container relative z-10">
         <div className="flex flex-col items-center text-center">
-          {/* Location */}
-          <div className="mb-6 flex items-center gap-2 text-muted-foreground animate-fade-in">
-            <MapPin className="h-4 w-4" />
-            <span className="text-sm font-medium uppercase tracking-widest">{location}</span>
-          </div>
 
           {/* Title */}
           <h1 className="mb-4 text-3xl font-bold tracking-tight md:text-5xl lg:text-6xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -52,13 +47,13 @@ export const HeroSection = ({ iaq, location }: HeroSectionProps) => {
               <span className={`font-mono text-7xl font-bold ${status.textClass} animate-pulse-glow`}>
                 {Math.round(iaq)}
               </span>
-              <span className="text-xl text-muted-foreground">IAQ</span>
+              <span className="text-xl text-muted-foreground">AQI</span>
             </div>
 
             <div className="mt-4 flex items-center gap-2">
               <Wind className={`h-4 w-4 ${status.textClass}`} />
               <span className={`text-sm font-medium ${status.textClass}`}>
-                {status.label} Air Quality
+                {status.label} — EPA Air Quality Index
               </span>
             </div>
           </div>

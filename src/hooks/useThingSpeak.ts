@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FieldMapping } from '@/components/ThingSpeakConfig';
+import type { HistoricalDataPoint } from '@/lib/aqiUtils';
 
 interface ThingSpeakConfig {
   channelId: string;
@@ -15,11 +16,6 @@ export interface SensorReading {
   value: number;
   unit: string;
   field: string;
-}
-
-export interface HistoricalDataPoint {
-  created_at: string; // Keeps raw ISO date
-  [key: string]: string | number;
 }
 
 const parseValue = (value: string | number | null | undefined): number => {

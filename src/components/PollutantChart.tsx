@@ -157,7 +157,7 @@ export const PollutantChart = ({
               {epaLimit && (
                 <ReferenceLine
                   y={epaLimit}
-                  stroke="#ff0000"
+                  stroke="hsl(var(--destructive))"
                   strokeDasharray="4 4"
                   label={{ position: 'top', value: limitLabel || 'EPA Standard', fill: '#ff0000', fontSize: 12 }}
                 />
@@ -196,7 +196,7 @@ export const PollutantChart = ({
               {epaLimit && (
                 <ReferenceLine
                   y={epaLimit}
-                  stroke="#ff0000"
+                  stroke="hsl(var(--destructive))"
                   strokeDasharray="4 4"
                   label={{ position: 'top', value: limitLabel || 'EPA Standard', fill: '#ff0000', fontSize: 12 }}
                 />

@@ -75,7 +75,7 @@ const getIconForType = (type: string) => {
 
 const Index = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');
-  const [viewMode, setViewMode] = useState<'live' | 'hourly'>('live');
+  //const [viewMode, setViewMode] = useState<'live' | 'hourly'>('live');
 
   const {
     readings,
@@ -103,14 +103,9 @@ const Index = () => {
   // Inside your main component:
   const latestFeed = historicalData && historicalData.length > 0 ? historicalData[historicalData.length - 1] : null;
   // Calculate latency in seconds
-  const getLatency = () => {
-    if (!latestFeed) return 'N/A';
-    const feedTime = new Date(latestFeed.created_at).getTime();
-    const currentTime = new Date().getTime();
-    const diffInSeconds = Math.floor((currentTime - feedTime) / 1000);
-
-    return `${diffInSeconds}s ago`;
-  };
+  const latency = latestFeed
+  ? `${Math.floor((Date.now() - new Date(latestFeed.created_at).getTime()) / 1000)}s ago`
+  : 'N/A';
 
   // --- 2. CALCULATE OVERALL "WORST" AQI ---
   const coAQI = getReading('aqi_co')?.value || 0;
@@ -197,12 +192,12 @@ const Index = () => {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-bold">Trends</h2>
               <div className="flex gap-4">
-                <button
+{/*                 <button
                   onClick={() => setViewMode(viewMode === 'live' ? 'hourly' : 'live')}
                   className="px-4 py-2 text-sm bg-primary/10 rounded-md hover:bg-primary/20 transition-colors"
                 >
                   View: {viewMode === 'live' ? 'Live Data' : 'Hourly Averages'}
-                </button>
+                </button> */}
                 <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
               </div>
             </div>
@@ -214,14 +209,14 @@ const Index = () => {
                     key={reading.field}
                     title={reading.label}
                     data={
-                      viewMode === 'hourly'
+                    /*   viewMode === 'hourly'
                         // If Hourly, run our utility function (make sure to import it!)
                         ? calculateHourlyAverages(historicalData).map(d => ({
                           created_at: d.time,
                           value: Number(d[reading.type]) || 0
                         }))
                         // If Live, show the raw data like you currently have
-                        : historicalData.map(d => ({
+                        :  */historicalData.map(d => ({
                           created_at: d.created_at,
                           value: Number(d[reading.type]) || 0
                         }))
@@ -247,7 +242,7 @@ const Index = () => {
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
         </span>
-        Last transmission: {latestFeed ? getLatency() : 'Waiting for ESP32...'}
+        Last transmission: {latestFeed ? latency : 'Waiting for ESP32...'}
       </div>
 
       {readings.length > 0 && <HealthAdvisory status={overallStatus} />}
