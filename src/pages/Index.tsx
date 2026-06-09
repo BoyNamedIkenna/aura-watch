@@ -97,9 +97,15 @@ const Index = () => {
 
   const calculateAvg = (type: string) => {
     if (!historicalData.length) return 0;
+
+    // Only average over the last 7 days
+    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
     const values = historicalData
+      .filter(d => new Date(d.created_at).getTime() >= oneWeekAgo)
       .map(d => Number(d[type]))
-      .filter(v => !isNaN(v) && v > 0);  // ← exclude zeros (null readings from ThingSpeak)
+      .filter(v => !isNaN(v) && v > 0); // exclude zeros (null ThingSpeak entries)
+
     if (!values.length) return 0;
     return values.reduce((a, b) => a + b, 0) / values.length;
   };
