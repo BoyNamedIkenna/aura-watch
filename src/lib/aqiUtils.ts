@@ -4,15 +4,7 @@ import { twMerge } from 'tailwind-merge';
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-/* // 1. US EPA STANDARD HEX CODES
-export const AQI_COLORS = {
-  good: '#009966',       
-  moderate: '#FFDE33',   
-  sensitive: '#FF9933',  
-  unhealthy: '#CC0033',  
-  veryUnhealthy: '#660099', 
-  hazardous: '#7E0023',  
-}; */
+
 export const AQI_COLORS = {
   good: 'hsl(142 76% 45%)',
   moderate: 'hsl(45 93% 50%)',

@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 @layer base {
   :root {
@@ -45,12 +45,36 @@
     --aqi-hazardous: 280 60% 35%;
 
     /* Gradients */
-    --gradient-good: linear-gradient(135deg, hsl(142 76% 45% / 0.2), hsl(142 76% 45% / 0.05));
-    --gradient-moderate: linear-gradient(135deg, hsl(45 93% 50% / 0.2), hsl(45 93% 50% / 0.05));
-    --gradient-unhealthy-sensitive: linear-gradient(135deg, hsl(25 95% 53% / 0.2), hsl(25 95% 53% / 0.05));
-    --gradient-unhealthy: linear-gradient(135deg, hsl(0 84% 55% / 0.2), hsl(0 84% 55% / 0.05));
-    --gradient-very-unhealthy: linear-gradient(135deg, hsl(280 60% 35% / 0.2), hsl(280 60% 35% / 0.05));
-    --gradient-hazardous: linear-gradient(135deg, hsl(280 60% 35% / 0.2), hsl(280 60% 35% / 0.05));
+    --gradient-good: linear-gradient(
+      135deg,
+      hsl(142 76% 45% / 0.2),
+      hsl(142 76% 45% / 0.05)
+    );
+    --gradient-moderate: linear-gradient(
+      135deg,
+      hsl(45 93% 50% / 0.2),
+      hsl(45 93% 50% / 0.05)
+    );
+    --gradient-unhealthy-sensitive: linear-gradient(
+      135deg,
+      hsl(25 95% 53% / 0.2),
+      hsl(25 95% 53% / 0.05)
+    );
+    --gradient-unhealthy: linear-gradient(
+      135deg,
+      hsl(0 84% 55% / 0.2),
+      hsl(0 84% 55% / 0.05)
+    );
+    --gradient-very-unhealthy: linear-gradient(
+      135deg,
+      hsl(280 60% 35% / 0.2),
+      hsl(280 60% 35% / 0.05)
+    );
+    --gradient-hazardous: linear-gradient(
+      135deg,
+      hsl(280 60% 35% / 0.2),
+      hsl(280 60% 35% / 0.05)
+    );
 
     /* Shadows */
     --shadow-glow-good: 0 0 60px hsl(142 76% 45% / 0.3);
@@ -75,11 +99,11 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: "Space Grotesk", sans-serif;
   }
 
   .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "JetBrains Mono", monospace;
   }
 }
 
@@ -102,7 +126,11 @@
 
   .aqi-card-unhealthy-sensitive {
     @apply border-aqi-unhealthy-sensitive/30;
-    background: linear-gradient(135deg, hsl(25 95% 53% / 0.2), hsl(25 95% 53% / 0.05));
+    background: linear-gradient(
+      135deg,
+      hsl(25 95% 53% / 0.2),
+      hsl(25 95% 53% / 0.05)
+    );
     box-shadow: 0 0 60px hsl(25 95% 53% / 0.3);
   }
 
@@ -130,9 +158,7 @@
   .pulse-dot {
     @apply h-2 w-2 rounded-full animate-pulse;
   }
-}
 
-@layer utilities {
   .text-aqi-good {
     color: hsl(var(--aqi-good));
   }
@@ -145,13 +171,14 @@
   .text-aqi-unhealthy {
     color: hsl(var(--aqi-unhealthy));
   }
-  .text-aqi-very-unhealthy   { 
-    color: hsl(var(--aqi-very-unhealthy)); 
+  .text-aqi-very-unhealthy {
+    color: hsl(var(--aqi-very-unhealthy));
   }
   .text-aqi-hazardous {
     color: hsl(var(--aqi-hazardous));
   }
 
+  /* AQI BACKGROUND COLORS */
   .bg-aqi-good {
     background-color: hsl(var(--aqi-good));
   }
@@ -164,13 +191,14 @@
   .bg-aqi-unhealthy {
     background-color: hsl(var(--aqi-unhealthy));
   }
-  .bg-aqi-very-unhealthy { 
-    background-color: hsl(var(--aqi-very-unhealthy)); 
+  .bg-aqi-very-unhealthy {
+    background-color: hsl(var(--aqi-very-unhealthy));
   }
   .bg-aqi-hazardous {
     background-color: hsl(var(--aqi-hazardous));
   }
 
+  /* AQI BORDER COLORS */
   .border-aqi-good {
     border-color: hsl(var(--aqi-good));
   }
@@ -183,8 +211,8 @@
   .border-aqi-unhealthy {
     border-color: hsl(var(--aqi-unhealthy));
   }
-  .border-aqi-very-unhealthy { 
-    border-color: hsl(var(--aqi-very-unhealthy)); 
+  .border-aqi-very-unhealthy {
+    border-color: hsl(var(--aqi-very-unhealthy));
   }
   .border-aqi-hazardous {
     border-color: hsl(var(--aqi-hazardous));

@@ -8,7 +8,7 @@ import { Footer } from '@/components/Footer';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { TimeRangeSelector, type TimeRange, getResultsForTimeRange } from '@/components/TimeRangeSelector';
 import { useThingSpeak } from '@/hooks/useThingSpeak';
-import { getIAQStatus, getCOStatus, getPMStatus,getPM10Status,calculateHourlyAverages, type AQIStatus } from '@/lib/aqiUtils';
+import { getIAQStatus, getCOStatus, getPMStatus, getPM10Status, calculateHourlyAverages, type AQIStatus } from '@/lib/aqiUtils';
 
 // --- HARDCODED CONFIGURATION ---
 const CHANNEL_ID = import.meta.env.VITE_PUBLIC_THINGSPEAK_CHANNEL_ID;
@@ -33,9 +33,9 @@ const EPA_LIMITS: Record<string, number> = {
 };
 
 const calcPM25_AQI = (c: number): number => {
-  if (c <= 12.0)  return Math.round(((50 - 0) / (12.0 - 0)) * c);
-  if (c <= 35.4)  return Math.round(((100 - 51) / (35.4 - 12.1)) * (c - 12.1) + 51);
-  if (c <= 55.4)  return Math.round(((150 - 101) / (55.4 - 35.5)) * (c - 35.5) + 101);
+  if (c <= 12.0) return Math.round(((50 - 0) / (12.0 - 0)) * c);
+  if (c <= 35.4) return Math.round(((100 - 51) / (35.4 - 12.1)) * (c - 12.1) + 51);
+  if (c <= 55.4) return Math.round(((150 - 101) / (55.4 - 35.5)) * (c - 35.5) + 101);
   if (c <= 150.4) return Math.round(((200 - 151) / (150.4 - 55.5)) * (c - 55.5) + 151);
   if (c <= 250.4) return Math.round(((300 - 201) / (250.4 - 150.5)) * (c - 150.5) + 201);
   if (c <= 500.4) return Math.round(((500 - 301) / (500.4 - 250.5)) * (c - 250.5) + 301); // Hazardous
@@ -43,7 +43,7 @@ const calcPM25_AQI = (c: number): number => {
 };
 
 const calcPM10_AQI = (c: number): number => {
-  if (c <= 54)  return Math.round(((50 - 0) / (54 - 0)) * c);
+  if (c <= 54) return Math.round(((50 - 0) / (54 - 0)) * c);
   if (c <= 154) return Math.round(((100 - 51) / (154 - 55)) * (c - 55) + 51);
   if (c <= 254) return Math.round(((150 - 101) / (254 - 155)) * (c - 155) + 101);
   if (c <= 354) return Math.round(((200 - 151) / (354 - 255)) * (c - 255) + 151);
@@ -54,7 +54,7 @@ const calcPM10_AQI = (c: number): number => {
 
 const getStatusForType = (type: string, value: number): AQIStatus => {
   switch (type) {
-    case 'co':   return getCOStatus(value);
+    case 'co': return getCOStatus(value);
     case 'pm25': return getPMStatus(value);
     case 'pm10': return getPM10Status(value);  // ← was wrongly using getPMStatus
     case 'voc':
@@ -97,7 +97,9 @@ const Index = () => {
 
   const calculateAvg = (type: string) => {
     if (!historicalData.length) return 0;
-    const values = historicalData.map(d => Number(d[type])).filter(v => !isNaN(v));
+    const values = historicalData
+      .map(d => Number(d[type]))
+      .filter(v => !isNaN(v) && v > 0);  // ← exclude zeros (null readings from ThingSpeak)
     if (!values.length) return 0;
     return values.reduce((a, b) => a + b, 0) / values.length;
   };
@@ -106,8 +108,8 @@ const Index = () => {
   const latestFeed = historicalData && historicalData.length > 0 ? historicalData[historicalData.length - 1] : null;
   // Calculate latency in seconds
   const latency = latestFeed
-  ? `${Math.floor((Date.now() - new Date(latestFeed.created_at).getTime()) / 1000)}s ago`
-  : 'N/A';
+    ? `${Math.floor((Date.now() - new Date(latestFeed.created_at).getTime()) / 1000)}s ago`
+    : 'N/A';
 
   // --- 2. CALCULATE OVERALL "WORST" AQI ---
   const coAQI = getReading('aqi_co')?.value || 0;
@@ -194,12 +196,12 @@ const Index = () => {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-bold">Trends</h2>
               <div className="flex gap-4">
-             <button
+                <button
                   onClick={() => setViewMode(viewMode === 'live' ? 'hourly' : 'live')}
                   className="px-4 py-2 text-sm bg-primary/10 rounded-md hover:bg-primary/20 transition-colors"
                 >
                   View: {viewMode === 'live' ? 'Live Data' : 'Hourly Averages'}
-                </button> 
+                </button>
                 <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
               </div>
             </div>
@@ -210,17 +212,17 @@ const Index = () => {
                   <PollutantChart
                     key={reading.field}
                     title={reading.label}
-                    data={ viewMode === 'hourly'
-                        // If Hourly, run our utility function (make sure to import it!)
-                        ? calculateHourlyAverages(historicalData).map(d => ({
-                          created_at: d.created_at,
-                          value: Number(d[reading.type]) || 0
-                        }))
-                        // If Live, show the raw data like you currently have
-                        :  historicalData.map(d => ({
-                          created_at: d.created_at,
-                          value: Number(d[reading.type]) || 0
-                        }))
+                    data={viewMode === 'hourly'
+                      // If Hourly, run our utility function (make sure to import it!)
+                      ? calculateHourlyAverages(historicalData).map(d => ({
+                        created_at: d.created_at,
+                        value: Number(d[reading.type]) || 0
+                      }))
+                      // If Live, show the raw data like you currently have
+                      : historicalData.map(d => ({
+                        created_at: d.created_at,
+                        value: Number(d[reading.type]) || 0
+                      }))
                     }
                     status={getStatusForType(reading.type, reading.value)}
                     unit={reading.unit}
