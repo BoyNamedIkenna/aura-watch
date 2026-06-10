@@ -6,16 +6,8 @@ interface StatusBadgeProps {
 
 export const StatusBadge = ({ status }: StatusBadgeProps) => {
   return (
-    <div
-      className={`status-badge ${status.textClass}`}
-      style={{
-        backgroundColor: `${status.color}33`, // 33 = 20% opacity in hex
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        borderColor: `${status.color}4D`,     // 4D = 30% opacity in hex
-      }}
-    >
-      <span className={`pulse-dot`} style={{ backgroundColor: status.color }} />
+    <div className={`status-badge ${status.bgClass}/20 ${status.textClass} border ${status.borderClass}/30`}>
+      <span className={`pulse-dot ${status.bgClass}`} />
       {status.label}
     </div>
   );

@@ -19,10 +19,7 @@ export const SensorCard = ({ title, subtitle, icon, status, children, delay = '0
     >
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div
-            className={`p-2.5 rounded-xl ${status.textClass}`}
-            style={{ backgroundColor: `${status.color}1A` }} // 1A = 10% opacity in hex
-          >
+          <div className={`p-2.5 rounded-xl ${status.bgClass}/10 ${status.textClass}`}>
             {icon}
           </div>
           <div>

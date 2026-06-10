@@ -72,10 +72,9 @@
     );
     --gradient-hazardous: linear-gradient(
       135deg,
-      hsl(280 60% 35% / 0.2),
-      hsl(280 60% 35% / 0.05)
+      hsl(343 60% 25% / 0.2),
+      hsl(343 60% 25% / 0.05)
     );
-
     /* Shadows */
     --shadow-glow-good: 0 0 60px hsl(142 76% 45% / 0.3);
     --shadow-glow-moderate: 0 0 60px hsl(45 93% 50% / 0.3);
@@ -113,42 +112,34 @@
   }
 
   .aqi-card-good {
-    @apply border-aqi-good/30;
+    border-color: hsl(142 76% 45% / 0.3);
     background: var(--gradient-good);
     box-shadow: var(--shadow-glow-good);
   }
-
   .aqi-card-moderate {
-    @apply border-aqi-moderate/30;
+    border-color: hsl(45 93% 50% / 0.3);
     background: var(--gradient-moderate);
     box-shadow: var(--shadow-glow-moderate);
   }
-
   .aqi-card-unhealthy-sensitive {
-    @apply border-aqi-unhealthy-sensitive/30;
-    background: linear-gradient(
-      135deg,
-      hsl(25 95% 53% / 0.2),
-      hsl(25 95% 53% / 0.05)
-    );
+    border-color: hsl(25 95% 53% / 0.3);
+    background: var(--gradient-unhealthy-sensitive);
     box-shadow: 0 0 60px hsl(25 95% 53% / 0.3);
   }
-
   .aqi-card-unhealthy {
-    @apply border-aqi-unhealthy/30;
+    border-color: hsl(0 84% 55% / 0.3);
     background: var(--gradient-unhealthy);
     box-shadow: var(--shadow-glow-unhealthy);
   }
   .aqi-card-very-unhealthy {
-    @apply border-aqi-very-unhealthy/30;
+    border-color: hsl(280 60% 35% / 0.3);
     background: var(--gradient-very-unhealthy);
     box-shadow: 0 0 60px hsl(280 60% 35% / 0.3);
   }
-
   .aqi-card-hazardous {
-    @apply border-aqi-hazardous/30;
+    border-color: hsl(343 60% 25% / 0.3);
     background: var(--gradient-hazardous);
-    box-shadow: 0 0 60px hsl(280 60% 35% / 0.3);
+    box-shadow: 0 0 60px hsl(343 60% 25% / 0.3);
   }
 
   .status-badge {
