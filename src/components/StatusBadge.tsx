@@ -1,3 +1,4 @@
+import { CSSProperties } from 'react';
 import { AQIStatus } from '@/lib/aqiUtils';
 
 interface StatusBadgeProps {
@@ -5,9 +6,21 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge = ({ status }: StatusBadgeProps) => {
+  const badgeStyle: CSSProperties = {
+    backgroundColor: `${status.color}33`, // 20%
+    borderColor: `${status.color}4D`,     // 30%
+    color: status.color,
+    borderWidth: '1px',
+    borderStyle: 'solid',
+  };
+
+  const dotStyle: CSSProperties = {
+    backgroundColor: status.color,
+  };
+
   return (
-    <div className={`status-badge ${status.bgClass}/20 ${status.textClass} border ${status.borderClass}/30`}>
-      <span className={`pulse-dot ${status.bgClass}`} />
+    <div className="status-badge" style={badgeStyle}>
+      <span className="pulse-dot" style={dotStyle} />
       {status.label}
     </div>
   );
