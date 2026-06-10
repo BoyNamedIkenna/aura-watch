@@ -6,12 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const AQI_COLORS = {
-  good: 'hsl(142 76% 45%)',
-  moderate: 'hsl(45 93% 50%)',
-  sensitive: 'hsl(25 95% 53%)',
-  unhealthy: 'hsl(0 84% 55%)',
-  veryUnhealthy: 'hsl(280 60% 35%)', 
-  hazardous: 'hsl(343 100% 25%)',
+  good: '142 76% 45%',
+  moderate: '45 93% 50%',
+  sensitive: '25 95% 53%',
+  unhealthy: '0 84% 55%',
+  veryUnhealthy: '280 60% 35%', 
+  hazardous: '343 100% 25%',
 };
 
 export interface HistoricalDataPoint {

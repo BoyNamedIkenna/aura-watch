@@ -7,9 +7,9 @@ interface StatusBadgeProps {
 
 export const StatusBadge = ({ status }: StatusBadgeProps) => {
   const badgeStyle: CSSProperties = {
-    backgroundColor: `${status.color}33`, // 20%
-    borderColor: `${status.color}4D`,     // 30%
-    color: status.color,
+  backgroundColor: `hsl(${status.color} / 0.2)`,
+borderColor: `hsl(${status.color} / 0.3)`,
+color: `hsl(${status.color})`,
     borderWidth: '1px',
     borderStyle: 'solid',
   };

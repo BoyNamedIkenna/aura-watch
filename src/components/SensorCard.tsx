@@ -14,9 +14,13 @@ interface SensorCardProps {
 export const SensorCard = ({ title, subtitle, icon, status, children, delay = '0s' }: SensorCardProps) => {
   const cardStyle: CSSProperties = {
     animationDelay: delay,
-    background: `linear-gradient(135deg, ${status.color}33, ${status.color}0D)`, // 33=20%, 0D=5%
-    borderColor: `${status.color}4D`,                                             // 4D=30%
-    boxShadow: `0 0 60px ${status.color}4D`,
+    background: `linear-gradient(
+  135deg,
+  hsl(${status.color} / 0.2),
+  hsl(${status.color} / 0.05)
+)`,
+    borderColor: `hsl(${status.color} / 0.3)`,
+    boxShadow: `0 0 60px hsl(${status.color} / 0.3)`
   };
 
   const iconStyle: CSSProperties = {
@@ -62,7 +66,7 @@ export const Reading = ({ label, value, unit, status, large = false }: ReadingPr
       <div className="flex items-baseline gap-1">
         <span
           className={`font-mono font-bold ${large ? 'text-4xl' : 'text-2xl'}`}
-          style={{ color: status.color }}
+          style={{ color: `hsl(${status.color})` }}
         >
           {typeof value === 'number' ? value.toFixed(1) : value}
         </span>
