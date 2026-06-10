@@ -13,13 +13,17 @@ export const HeroSection = ({ iaq, location }: HeroSectionProps) => {
   return (
     <section className="relative overflow-hidden py-12 md:py-20">
       {/* Background gradient based on AQI */}
-      <div 
+      <div
         className="absolute inset-0 opacity-20 transition-all duration-1000"
         style={{
-          background: `radial-gradient(ellipse at 50% 0%, ${status.color} 0%, transparent 70%)`,
+          background: `radial-gradient(
+  ellipse at 50% 0%,
+  hsl(${status.color} / 0.35) 0%,
+  transparent 70%
+)`
         }}
       />
-      
+
       <div className="container relative z-10">
         <div className="flex flex-col items-center text-center">
 
@@ -31,7 +35,7 @@ export const HeroSection = ({ iaq, location }: HeroSectionProps) => {
           </h1>
 
           {/* Main AQI Card */}
-          <div 
+          <div
             className={`mt-10 aqi-card ${status.cardClass} w-full max-w-md animate-scale-in`}
             style={{ animationDelay: '0.2s' }}
           >

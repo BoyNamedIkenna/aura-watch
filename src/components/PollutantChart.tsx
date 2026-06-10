@@ -82,11 +82,11 @@ export const PollutantChart = ({
   // Define the gradient stops once to use for both fill and line
   const gradientStops = (
     <>
-      <stop offset="5%" stopColor={AQI_COLORS.hazardous} />
-      <stop offset="20%" stopColor={AQI_COLORS.unhealthy} />
-      <stop offset="40%" stopColor={AQI_COLORS.sensitive} />
-      <stop offset="60%" stopColor={AQI_COLORS.moderate} />
-      <stop offset="95%" stopColor={AQI_COLORS.good} />
+      <stop offset="5%" stopColor={`hsl(${AQI_COLORS.hazardous})`} />
+      <stop offset="20%" stopColor={`hsl(${AQI_COLORS.unhealthy})`} />
+      <stop offset="40%" stopColor={`hsl(${AQI_COLORS.sensitive})`} />
+      <stop offset="60%" stopColor={`hsl(${AQI_COLORS.moderate})`} />
+      <stop offset="95%" stopColor={`hsl(${AQI_COLORS.good})`} />
     </>
   );
 
@@ -96,7 +96,7 @@ export const PollutantChart = ({
         <div>
           <h3 className="font-semibold text-foreground text-lg">{title}</h3>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-3xl font-bold" style={{ color: status.color }}>
+            <span className="text-3xl font-bold" style={{ color: `hsl(${status.color})` }}>
               {currentValue.toFixed(1)} <span className="text-sm text-muted-foreground">{unit}</span>
             </span>
             <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
@@ -208,7 +208,10 @@ export const PollutantChart = ({
                 {/* INDIVIDUAL BAR COLORING LOOP */}
                 {chartData.map((entry, index) => {
                   const barStatus = getIAQStatus(entry.value);
-                  return <Cell key={`cell-${index}`} fill={barStatus.color} />;
+                  return <Cell
+                    key={`cell-${index}`}
+                    fill={`hsl(${barStatus.color})`}
+                  />;
                 })}
               </Bar>
             </BarChart>
