@@ -154,14 +154,14 @@ export const PollutantChart = ({
                 labelFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)}
               />
               {/* ADD THIS BLOCK FOR THE EPA LIMIT */}
-              {epaLimit && (
+              {/* {epaLimit && (
                 <ReferenceLine
                   y={epaLimit}
                   stroke="hsl(var(--destructive))"
                   strokeDasharray="4 4"
                   label={{ position: 'top', value: limitLabel || 'EPA Standard', fill: '#ff0000', fontSize: 12 }}
                 />
-              )}
+              )} */}
               <Area
                 type="monotone"
                 dataKey="value"
@@ -193,14 +193,14 @@ export const PollutantChart = ({
                 labelFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)}
               />
               {/* ADD THIS BLOCK FOR THE EPA LIMIT */}
-              {epaLimit && (
+             {/*  {epaLimit && (
                 <ReferenceLine
                   y={epaLimit}
                   stroke="hsl(var(--destructive))"
                   strokeDasharray="4 4"
                   label={{ position: 'top', value: limitLabel || 'EPA Standard', fill: '#ff0000', fontSize: 12 }}
                 />
-              )}
+              )} */}
               <Bar
                 dataKey="value"
                 radius={[4, 4, 0, 0]}
