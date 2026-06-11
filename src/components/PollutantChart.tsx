@@ -44,7 +44,7 @@ export const PollutantChart = ({
 
     if (currentTimeRange === '12h') {
       startTime = endTime - (12 * 60 * 60 * 1000);
-      interval = 30 * 60 * 1000;
+      interval = 60 * 60 * 1000; // 1 hour
     } else if (currentTimeRange === '24h') {
       startTime = endTime - (24 * 60 * 60 * 1000);
       interval = 60 * 60 * 1000;
@@ -89,6 +89,20 @@ export const PollutantChart = ({
       <stop offset="95%" stopColor={`hsl(${AQI_COLORS.good})`} />
     </>
   );
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg text-sm">
+        <p className="text-muted-foreground mb-1">
+          {formatThingSpeakDate(new Date(label).toISOString(), currentTimeRange)}
+        </p>
+        <p className="font-semibold" style={{ color: status.color }}>
+          {payload[0].value.toFixed(2)} {unit}
+        </p>
+      </div>
+    );
+  };
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
@@ -149,10 +163,7 @@ export const PollutantChart = ({
                 minTickGap={40}
               />
               <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ borderRadius: '8px', border: 'none' }}
-                labelFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)}
-              />
+              <Tooltip content={<CustomTooltip />} />
               {/* ADD THIS BLOCK FOR THE EPA LIMIT */}
               {/* {epaLimit && (
                 <ReferenceLine
@@ -187,13 +198,9 @@ export const PollutantChart = ({
                 minTickGap={40}
               />
               <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip
-                cursor={{ fill: 'transparent' }}
-                contentStyle={{ borderRadius: '8px', border: 'none' }}
-                labelFormatter={(ts) => formatThingSpeakDate(new Date(ts).toISOString(), currentTimeRange)}
-              />
+              <Tooltip content={<CustomTooltip />} />
               {/* ADD THIS BLOCK FOR THE EPA LIMIT */}
-             {/*  {epaLimit && (
+              {/*  {epaLimit && (
                 <ReferenceLine
                   y={epaLimit}
                   stroke="hsl(var(--destructive))"
